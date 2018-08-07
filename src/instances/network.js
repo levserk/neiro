@@ -4,6 +4,8 @@ import Synapse from './synapse.js';
 const defaultConf = {
     inputsCount: 2,
     outputsCount: 1,
+    SPEED: 0.7,
+    MOMENT: 0.3,
     layers: [
         {
             neuronsCount: 2,
@@ -21,13 +23,12 @@ const defaultConf = {
                 }
             ]
         }
-    ],
-    synapses: []
+    ]
 };
 
 export default class Network {
     constructor(conf) {
-        this.conf = conf = {...defaultConf, conf};
+        this.conf = conf = {...defaultConf, ...conf};
 
         console.log(`conf:`, conf);
 
@@ -39,9 +40,83 @@ export default class Network {
             throw new Error(`wrong neurons count on output layer`);
         }
 
-        this.inputs = conf.inputs || new Array(conf.inputsCount);
+        this.SPEED = conf.SPEED;
+        this.MOMENT = conf.MOMENT;
+        this._inputs = conf.inputs || new Array(conf.inputsCount);
         this.outputs = new Array(conf.outputsCount);
         this.layers = Network.createLayers(conf.layers);
+    }
+
+    get inputs () {
+        return this._inputs;
+    }
+
+    set inputs (inputs) {
+        this._inputs = inputs;
+        this.updateOutputs();
+    }
+
+    updateOutputs() {
+        let layer, neuron;
+        for (let layerIndex = 0; layerIndex < this.layers.length; layerIndex++){
+            layer = this.layers[layerIndex];
+            for (let neuronIndex = 0; neuronIndex < layer.length; neuronIndex++){
+                neuron = layer[neuronIndex];
+                if (layerIndex === 0) {
+                    neuron.input = this._inputs[neuronIndex];
+                    neuron.output = neuron.input;
+                    console.log(`${neuron.id} input: ${neuron.input}, output: ${neuron.output}`);
+                }
+                else {
+                    neuron.input = 0;
+                    for (let synapse of neuron.inputSynapses) {
+                        neuron.input += synapse.inputNeuron.output*synapse.weight;
+                    }
+                    neuron.output = sigmoid(neuron.input);
+                    console.log(`${neuron.id} input: ${neuron.input}, output: ${neuron.output}`);
+                }
+                if (layerIndex === this.layers.length - 1) {
+                    this.outputs[neuronIndex] = neuron.output
+                }
+            }
+        }
+    }
+
+    getMSE(validOutputs) {
+        let sum = 0;
+        for (let i = 0; i < this.outputs.length; i++) {
+            sum += Math.pow((validOutputs[i] - this.outputs[i]), 2);
+        }
+        return sum / this.outputs.length;
+    }
+
+    backpropagation(validOutputs) {
+        const errorBefore = this.getMSE(validOutputs);
+        let layers = this.layers,
+            layer, neuron, synapse;
+        for (let layerIndex = layers.length - 1; layerIndex > 0; layerIndex--) {
+            layer = layers[layerIndex];
+            for (let neuronIndex = 0; neuronIndex < layer.length; neuronIndex++) {
+                neuron = layer[neuronIndex];
+                if (layerIndex === layers.length - 1){
+                    neuron.delta = (validOutputs[neuronIndex] - neuron.output) * derivativeSigmoid(neuron.output);
+                } else {
+                    neuron.delta = 0;
+                    for (let i = 0; i < neuron.outputSynapses.length; i++) {
+                        synapse = neuron.outputSynapses[i];
+                        neuron.delta += synapse.weight * synapse.outputNeuron.delta;
+                        synapse.grad = synapse.outputNeuron.delta * neuron.output;
+                        synapse.delta = this.SPEED * synapse.grad + this.MOMENT * synapse.delta;
+                        synapse.weight += synapse.delta;
+                    }
+                    if (layerIndex !== 0) {
+                        neuron.delta *= derivativeSigmoid(neuron.output)
+                    }
+                }
+            }
+        }
+        this.updateOutputs();
+        console.log(`error before: `, errorBefore, `error after: `, this.getMSE(validOutputs));
     }
 
     static createLayers(layerSchemes) {
@@ -123,3 +198,6 @@ export default class Network {
         return layerSchemes;
     }
 }
+
+const sigmoid = (value) => 1/(1+Math.exp(-value));
+const derivativeSigmoid = (value) => (1 - value) * value;
