@@ -95,20 +95,22 @@ export default class Network {
         let layers = this.layers,
             layer, neuron, synapse;
 
-        for (let layerIndex = layers.length - 1; layerIndex > 0; layerIndex--) {
+        for (let layerIndex = layers.length - 1; layerIndex >= 0; layerIndex--) {
             layer = layers[layerIndex];
             for (let neuronIndex = 0; neuronIndex < layer.length; neuronIndex++) {
                 neuron = layer[neuronIndex];
                 if (layerIndex === layers.length - 1) {
+                    // first layer delta
                     neuron.delta = (validOutputs[neuronIndex] - neuron.output) * derivativeSigmoid(neuron.output);
                 } else {
                     neuron.delta = 0;
                     for (let i = 0; i < neuron.outputSynapses.length; i++) {
                         synapse = neuron.outputSynapses[i];
-                        neuron.delta += synapse.weight * synapse.outputNeuron.delta;
+                        //neuron.delta += synapse.weight * synapse.outputNeuron.delta;
                         synapse.grad = synapse.outputNeuron.delta * neuron.output;
                         synapse.delta = this.SPEED * synapse.grad + this.MOMENT * synapse.delta;
                         synapse.weight += synapse.delta;
+                        neuron.delta += synapse.weight * synapse.outputNeuron.delta;
                     }
                     if (layerIndex !== 0) {
                         neuron.delta *= derivativeSigmoid(neuron.output)
@@ -123,16 +125,23 @@ export default class Network {
         this.SPEED = speed || this.SPEED;
         this.MOMENT = moment || this.MOMENT;
 
+        const timeStart = Date.now();
+        let error  = 0;
 
         for (let iteration = 0; iteration < iterations; iteration++) {
-            learnData= learnData.sort(function() {
-                return .5 - Math.random();
-            });
+            learnData= learnData.sort(() => 0.5 - Math.random());
+            error  = 0;
             for (let data of learnData) {
                 this.inputs = data.inputs;
-                this.backpropagation(data.outputs, iterations)
+                this.backpropagation(data.outputs, iterations);
+                error += this.getMSE(data.outputs);
+            }
+            if (iteration % 100 === 0) {
+                console.log(iteration, `/`, iterations, error / learnData.length);
             }
         }
+
+        console.log(`learn done; final error:`, error / learnData.length, `time:`, Date.now() - timeStart)
 
     }
 

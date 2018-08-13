@@ -1,7 +1,7 @@
 import Network from './instances/network.js'
 
 const init = () => {
-   testXor();
+    testXor();
 };
 
 const testNetwork = () => {
@@ -62,7 +62,7 @@ const testXor = () => {
                 neuronsCount: 2,
             },
             {
-                neuronsCount: 3,
+                neuronsCount: 2,
             },
             {
                 neuronsCount: 1,
@@ -70,19 +70,21 @@ const testXor = () => {
         ]
     };
     const learnData = [
-        {inputs: [0, 0], outputs:[0]},
-        {inputs: [1, 0], outputs:[1]},
-        {inputs: [0, 1], outputs:[1]},
-        {inputs: [1, 1], outputs:[0]}
+        {inputs: [0, 0], outputs: [0]},
+        {inputs: [1, 0], outputs: [1]},
+        {inputs: [0, 1], outputs: [1]},
+        {inputs: [1, 1], outputs: [0]}
     ];
     let network = new Network(conf);
+    console.log(network);
+    console.log(JSON.parse(JSON.stringify(network.getScheme())));
     network.test(learnData);
-    network.learn(learnData, 50000, 0.07, 0.3);
+    network.learn(learnData, 10000, 0.7, 0.01);
     network.test(learnData);
+    console.log(JSON.parse(JSON.stringify(network.getScheme())));
 };
 
 init();
-
 
 if (module.hot) {
     module.hot.accept(['./index.js'], () => {
