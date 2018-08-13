@@ -47,33 +47,33 @@ export default class Network {
         this.layers = Network.createLayers(conf.layers);
     }
 
-    get inputs () {
+    get inputs() {
         return this._inputs;
     }
 
-    set inputs (inputs) {
+    set inputs(inputs) {
         this._inputs = inputs;
         this.updateOutputs();
     }
 
     updateOutputs() {
         let layer, neuron;
-        for (let layerIndex = 0; layerIndex < this.layers.length; layerIndex++){
+        for (let layerIndex = 0; layerIndex < this.layers.length; layerIndex++) {
             layer = this.layers[layerIndex];
-            for (let neuronIndex = 0; neuronIndex < layer.length; neuronIndex++){
+            for (let neuronIndex = 0; neuronIndex < layer.length; neuronIndex++) {
                 neuron = layer[neuronIndex];
                 if (layerIndex === 0) {
                     neuron.input = this._inputs[neuronIndex];
                     neuron.output = neuron.input;
-                    console.log(`${neuron.id} input: ${neuron.input}, output: ${neuron.output}`);
+                    //console.log(`${neuron.id} input: ${neuron.input}, output: ${neuron.output}`);
                 }
                 else {
                     neuron.input = 0;
                     for (let synapse of neuron.inputSynapses) {
-                        neuron.input += synapse.inputNeuron.output*synapse.weight;
+                        neuron.input += synapse.inputNeuron.output * synapse.weight;
                     }
                     neuron.output = sigmoid(neuron.input);
-                    console.log(`${neuron.id} input: ${neuron.input}, output: ${neuron.output}`);
+                    //console.log(`${neuron.id} input: ${neuron.input}, output: ${neuron.output}`);
                 }
                 if (layerIndex === this.layers.length - 1) {
                     this.outputs[neuronIndex] = neuron.output
@@ -90,15 +90,16 @@ export default class Network {
         return sum / this.outputs.length;
     }
 
-    backpropagation(validOutputs) {
-        const errorBefore = this.getMSE(validOutputs);
+    backpropagation(validOutputs, iterations) {
+
         let layers = this.layers,
             layer, neuron, synapse;
+
         for (let layerIndex = layers.length - 1; layerIndex > 0; layerIndex--) {
             layer = layers[layerIndex];
             for (let neuronIndex = 0; neuronIndex < layer.length; neuronIndex++) {
                 neuron = layer[neuronIndex];
-                if (layerIndex === layers.length - 1){
+                if (layerIndex === layers.length - 1) {
                     neuron.delta = (validOutputs[neuronIndex] - neuron.output) * derivativeSigmoid(neuron.output);
                 } else {
                     neuron.delta = 0;
@@ -116,7 +117,33 @@ export default class Network {
             }
         }
         this.updateOutputs();
-        console.log(`error before: `, errorBefore, `error after: `, this.getMSE(validOutputs));
+    }
+
+    learn(learnData, iterations, speed, moment) {
+        this.SPEED = speed || this.SPEED;
+        this.MOMENT = moment || this.MOMENT;
+
+
+        for (let iteration = 0; iteration < iterations; iteration++) {
+            learnData= learnData.sort(function() {
+                return .5 - Math.random();
+            });
+            for (let data of learnData) {
+                this.inputs = data.inputs;
+                this.backpropagation(data.outputs, iterations)
+            }
+        }
+
+    }
+
+    test(tests) {
+        for (let test of tests) {
+            let inputs = test.inputs,
+                validOutputs = test.outputs;
+            this.inputs = inputs;
+            console.log(`inputs:`, inputs, `valid outputs:`, validOutputs, `networkOutputs:`, this.outputs,
+                `error:`, this.getMSE(validOutputs));
+        }
     }
 
     static createLayers(layerSchemes) {
@@ -199,5 +226,5 @@ export default class Network {
     }
 }
 
-const sigmoid = (value) => 1/(1+Math.exp(-value));
+const sigmoid = (value) => 1 / (1 + Math.exp(-value));
 const derivativeSigmoid = (value) => (1 - value) * value;

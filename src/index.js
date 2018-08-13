@@ -1,14 +1,7 @@
 import Network from './instances/network.js'
 
 const init = () => {
-    console.log(`init 12`, `width: ${document.documentElement.clientWidth} height: ${document.documentElement.clientHeight}`);
-    let network = new Network({});
-    console.log(network);
-    let scheme = network.getScheme();
-    console.log(scheme);
-    console.log(new Network(scheme));
-
-    testNetwork();
+   testXor();
 };
 
 const testNetwork = () => {
@@ -54,9 +47,38 @@ const testNetwork = () => {
     let network = new Network(conf);
     network.inputs = conf.inputs;
     console.log(network.outputs[0]);
-    for (let i = 0; i < 100; i++) {
-        network.backpropagation([1]);
-    }
+
+    network.backpropagation([1], 100);
+    console.log(network.outputs[0]);
+};
+
+const testXor = () => {
+    const conf = {
+        inputsCount: 2,
+        outputsCount: 1,
+        inputs: [1, 0],
+        layers: [
+            {
+                neuronsCount: 2,
+            },
+            {
+                neuronsCount: 3,
+            },
+            {
+                neuronsCount: 1,
+            }
+        ]
+    };
+    const learnData = [
+        {inputs: [0, 0], outputs:[0]},
+        {inputs: [1, 0], outputs:[1]},
+        {inputs: [0, 1], outputs:[1]},
+        {inputs: [1, 1], outputs:[0]}
+    ];
+    let network = new Network(conf);
+    network.test(learnData);
+    network.learn(learnData, 50000, 0.07, 0.3);
+    network.test(learnData);
 };
 
 init();
