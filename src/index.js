@@ -1,7 +1,8 @@
 import Network from './instances/network.js'
 
 const init = () => {
-    testXor();
+    // testXor();
+    testFindMissed();
 };
 
 const testNetwork = () => {
@@ -80,6 +81,39 @@ const testXor = () => {
     console.log(JSON.parse(JSON.stringify(network.getScheme())));
     network.test(learnData);
     network.learn(learnData, 10000, 0.7, 0.01);
+    network.test(learnData);
+    console.log(JSON.parse(JSON.stringify(network.getScheme())));
+};
+
+const testFindMissed = () => {
+    const digitsCount = 10;
+    const conf = {
+        inputsCount: digitsCount,
+        outputsCount: 1,
+        layers: [
+            {
+                neuronsCount: digitsCount,
+            },
+            {
+                neuronsCount: 1,
+            }
+        ]
+    };
+    const learnData = [1,2,3,4,5,6,7,8,9,10].map((digit) => {
+        let inputs = [1,1,1,1,1,1,1,1,1,1],
+            outputs = [digit / digitsCount];
+        inputs[digit - 1] = 0;
+        return {
+            inputs,
+            outputs
+        }
+    });
+    console.log(`learnData:`, learnData);
+    let network = new Network(conf);
+    console.log(network);
+    console.log(JSON.parse(JSON.stringify(network.getScheme())));
+    network.test(learnData);
+    network.learn(learnData, 100000, 0.5, 0.01);
     network.test(learnData);
     console.log(JSON.parse(JSON.stringify(network.getScheme())));
 };
